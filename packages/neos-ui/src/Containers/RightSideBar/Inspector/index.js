@@ -175,10 +175,10 @@ export default class Inspector extends PureComponent {
         }
     }
 
-    isPropertyEnabled = ({id}) => {
+    isPropertyEnabled = property => {
         const {focusedNode} = this.props;
 
-        return !$contains(id, 'policy.disallowedProperties', focusedNode);
+        return !$contains($get('id', property), 'policy.disallowedProperties', focusedNode);
     };
 
     /**
