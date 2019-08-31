@@ -8,6 +8,7 @@ import {neos} from '@neos-project/neos-ui-decorators';
 import {selectors} from '@neos-project/neos-ui-redux-store';
 
 import style from './style.css';
+import ErrorBoundary from './../ErrorBoundary/index';
 
 @neos(globalRegistry => ({
     inlineEditorRegistry: globalRegistry.get('inlineEditors'),
@@ -81,7 +82,9 @@ export default class SecondaryToolbar extends PureComponent {
 
         return (
             <div className={classNames}>
-                <Toolbar/>
+                <ErrorBoundary errorMessage="Error while loading the toolbar.">
+                    <Toolbar/>
+                </ErrorBoundary>
 
                 <div className={style.secondaryToolbar__rightHandedActions}>
                     {SecondaryToolbarRight.map((Item, key) => <Item key={key}/>)}
