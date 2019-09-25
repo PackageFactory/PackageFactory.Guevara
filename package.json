@@ -153,6 +153,7 @@
     "react-collapse": "^2.4.1",
     "react-datetime": "^2.8.10",
     "react-dnd": "^7.0.2",
+    "react-dnd-scrollzone": "^4.0.0",
     "react-dnd-html5-backend": "^7.0.2",
     "react-dom": "^16.0.0",
     "react-dropzone": "^3.13.2",

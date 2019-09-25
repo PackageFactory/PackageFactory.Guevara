@@ -8,7 +8,7 @@ interface TextInputTheme {
     readonly 'textInput--disabled': string;
 }
 
-export interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+export interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onKeyDown'> {
     /**
      * An optional className to render on the textarea node.
      */
@@ -44,10 +44,12 @@ export interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
      */
     readonly onEnterKey?: () => void;
 
+    readonly onKeyDown?: (event: KeyboardEvent) => void;
+
     /**
      * An optional css theme to be injected.
      */
-    readonly theme: TextInputTheme;
+    readonly theme?: TextInputTheme;
 }
 
 class TextInput extends PureComponent<TextInputProps> {
@@ -84,6 +86,7 @@ class TextInput extends PureComponent<TextInputProps> {
             containerClassName,
             disabled,
             type,
+            onKeyDown,
             ...restProps
         } = this.props;
 
@@ -113,9 +116,10 @@ class TextInput extends PureComponent<TextInputProps> {
                     disabled={disabled}
                     onChange={this.handleValueChange}
                     onKeyPress={this.handleKeyPress}
+                    onKeyDown={onKeyDown as unknown as React.KeyboardEventHandler<HTMLInputElement>}
                     ref={inputRef}
-                    />
-                </div>
+                />
+            </div>
         );
     }
 }

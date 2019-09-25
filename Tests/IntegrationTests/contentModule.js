@@ -391,3 +391,65 @@ test('Can crop an image', async t => {
     await t.expect(Selector('.main-header.image').getStyleProperty('background-image')).notEql(initialBackgroundImage, 'Header image should have changed after crop');
     await t.switchToMainWindow();
 });
+
+test('Can drag and drop inside a multi select box', async t => {
+    subSection('Create node with reference editor in inspector');
+    await t
+        .click(Selector('#neos-ContentTree-ToggleContentTree'))
+        .click(page.treeNode.withText('Content Collection (main)'))
+        .click(Selector('#neos-ContentTree-AddNode'))
+        .click(ReactSelector('NodeTypeItem').withProps({nodeType: {name: 'Neos.NodeTypes:ContentReferences'}}));
+    await waitForIframeLoading(t);
+    await t.click(page.treeNode.withText('Insert content references'));
+
+    const multiSelectBox = await ReactSelector('MultiSelectBox');
+    const input = await multiSelectBox.findReact('TextInput').find('div input');
+    await t
+        .typeText(input, 'ad');
+
+    subSection('Type to search for references and select 2 different options');
+    const numberOfOptions = await ReactSelector('MultiSelectBox').findReact('ListPreviewElement').count;
+    await t
+        .expect(numberOfOptions).gt(0)
+        .click(ReactSelector('MultiSelectBox').findReact('ListPreviewElement').nth(0))
+        .typeText(input, 'ad')
+        .click(ReactSelector('MultiSelectBox').findReact('ListPreviewElement').nth(2))
+        .expect(ReactSelector('MultiSelectBox').getReact(({props}) => props.options.length)).eql(2);
+
+    subSection('Rearange selected options via drag and drop');
+    const idsBeforeFirstDrag = await ReactSelector('MultiSelectBox').getReact(({props}) => props.options.map(option => option.identifier));
+    await t.drag(ReactSelector('MultiSelectBox').findReact('NodeOption').nth(0), 0, 80, {offsetX: 5, offsetY: 5});
+    const idsAfterFirstDrag = await ReactSelector('MultiSelectBox').getReact(({props}) => props.options.map(option => option.identifier));
+    // Option 2 should come before option 1
+    await t
+        .expect(idsBeforeFirstDrag[0]).eql(idsAfterFirstDrag[1])
+        .expect(idsBeforeFirstDrag[1]).eql(idsAfterFirstDrag[0]);
+
+    subSection('Apply changes');
+    await t.click(Selector('#neos-Inspector-Apply'));
+    await waitForIframeLoading(t);
+
+    const idsAfterFirstApply = await ReactSelector('MultiSelectBox').getReact(({props}) => props.options.map(option => option.identifier));
+    await t
+        .expect(idsAfterFirstDrag[0]).eql(idsAfterFirstApply[0])
+        .expect(idsAfterFirstDrag[1]).eql(idsAfterFirstApply[1]);
+
+    // TODO would be nice to test if the Nodes are rendered in content frame
+
+    subSection('select another option, drag and apply');
+    await t
+        .typeText(input, 'ad')
+        .click(ReactSelector('MultiSelectBox').findReact('ListPreviewElement').nth(5))
+        .expect(ReactSelector('MultiSelectBox').getReact(({props}) => props.options.length)).eql(3);
+
+    const idsBeforeSecondDrag = await ReactSelector('MultiSelectBox').getReact(({props}) => props.options.map(option => option.identifier));
+    await t.drag(ReactSelector('MultiSelectBox').findReact('NodeOption').nth(2), 0, -50, {offsetX: 5, offsetY: 5});
+    const idsAfterSecondDrag = await ReactSelector('MultiSelectBox').getReact(({props}) => props.options.map(option => option.identifier));
+    await t
+        .expect(idsAfterFirstApply[0]).eql(idsAfterSecondDrag[0])
+        .expect(idsAfterFirstApply[1]).eql(idsAfterSecondDrag[2])
+        .expect(idsBeforeSecondDrag[2]).eql(idsAfterSecondDrag[1]);
+
+    await t.click(Selector('#neos-Inspector-Apply'));
+    await waitForIframeLoading(t);
+});
