@@ -12,6 +12,7 @@ namespace Neos\Neos\Ui\Service;
  */
 
 use Neos\ContentRepository\Domain\Service\NodeTypeManager;
+use Neos\ContentRepository\Exception\NodeException;
 use Neos\ContentRepository\Security\Authorization\Privilege\Node\CreateNodePrivilege;
 use Neos\ContentRepository\Security\Authorization\Privilege\Node\CreateNodePrivilegeSubject;
 use Neos\ContentRepository\Security\Authorization\Privilege\Node\EditNodePrivilege;
@@ -114,6 +115,60 @@ class NodePolicyService
             return $disallowedNodeTypes;
         }
 
+        // determine the set of configured node supertypes
+        $nodeNodeType = $node->getNodeType();
+
+        $superTypes = [];
+        $generateSuperTypes = function (array $nodeTypes, &$superTypes) use (&$generateSuperTypes) {
+            foreach ($nodeTypes as $nodeType) {
+                $superTypes[$nodeType->getName()] = $nodeType;
+                $generateSuperTypes($nodeType->getDeclaredSuperTypes(), $superTypes);
+            }
+        };
+        $generateSuperTypes($nodeNodeType->getDeclaredSuperTypes(), $superTypes);
+
+        $parentNodeType = null;
+        try {
+            $parentNode = $node->findParentNode();
+            $parentNodeType = $parentNode->getNodeType();
+        } catch (NodeException $exception) {
+            // no parentNode found
+        }
+
+        // check if the node is auto-created
+        $isAutoCreated   = false;
+        if ($parentNodeType && array_key_exists((string)$node->getNodeName(), $parentNodeType->getAutoCreatedChildNodes())) {
+            $isAutoCreated = true;
+        }
+
+        // filter the set of configured nodeTypes
+        $nodeName = (string)$node->getNodeName();
+
+        $constraintAndSuperTypeFilter = function ($nodeType) use ($nodeName, $nodeNodeType, $superTypes, $isAutoCreated, $parentNodeType) {
+            // check if the nodeType is mentioned in the constraints
+            if ($isAutoCreated) {
+                if ($parentNodeType && $parentNodeType->allowsGrandchildNodeType($nodeName, $nodeType)) {
+                    return true;
+                }
+            } elseif ($nodeNodeType->allowsChildNodeType($nodeType)) {
+                return true;
+            }
+            // check if the nodeType is a supertype
+            elseif (isset($superTypes[$nodeType->getName()])) {
+                return true;
+            }
+            // check if the nodeType is the same as that of the current $node's nodeType
+            elseif ($nodeType->getName() == $nodeNodeType->getName()) {
+                return true;
+            }
+
+            // ignore other nodeType
+            return false;
+        };
+
+        $filteredNodeTypes = array_filter($this->nodeTypeManager->getNodeTypes(), $constraintAndSuperTypeFilter);
+
+        // filter the remaining nodeTypes via policy check
         $filter = function ($nodeType) use ($node) {
             return !$this->privilegeManager->isGranted(
                 CreateNodePrivilege::class,
@@ -121,7 +176,7 @@ class NodePolicyService
             );
         };
 
-        $disallowedNodeTypeObjects = array_filter($this->nodeTypeManager->getNodeTypes(), $filter);
+        $disallowedNodeTypeObjects = array_filter($filteredNodeTypes, $filter);
 
         $mapper = function ($nodeType) {
             return $nodeType->getName();
