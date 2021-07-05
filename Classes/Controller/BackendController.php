@@ -16,7 +16,6 @@ namespace Neos\Neos\Ui\Controller;
 use Neos\ContentRepository\Domain\Model\NodeInterface;
 use Neos\ContentRepository\Domain\Service\ContextFactoryInterface;
 use Neos\Flow\Annotations as Flow;
-use Neos\Flow\Http\Component\SetHeaderComponent;
 use Neos\Flow\Mvc\Controller\ActionController;
 use Neos\Flow\Mvc\Exception\NoSuchArgumentException;
 use Neos\Flow\Mvc\Exception\StopActionException;
@@ -26,7 +25,6 @@ use Neos\Flow\Mvc\View\ViewInterface;
 use Neos\Flow\Persistence\PersistenceManagerInterface;
 use Neos\Flow\ResourceManagement\ResourceManager;
 use Neos\Flow\Session\SessionInterface;
-use Neos\Fusion\View\FusionView;
 use Neos\Neos\Controller\Backend\MenuHelper;
 use Neos\Neos\Domain\Repository\DomainRepository;
 use Neos\Neos\Domain\Repository\SiteRepository;
@@ -111,17 +109,6 @@ class BackendController extends ActionController
      * @var LinkingService
      */
     protected $linkingService;
-
-    /**
-     * Initializes the view before invoking an action method.
-     *
-     * @param ViewInterface $view The view to be initialized
-     * @return void
-     */
-    public function initializeView(ViewInterface $view)
-    {
-        $view->setFusionPath('backend');
-    }
 
     /**
      * Displays the backend interface
